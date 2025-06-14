@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optimizador de Cortes para Madera</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .table-cell {
+            padding: 12px 16px;
+            text-align: left;
+        }
+        .btn-danger {
+            background-color: #ef4444; /* red-500 */
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .btn-danger:hover {
+            background-color: #dc2626; /* red-600 */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-5xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Optimizador de Cortes para Madera</h1>
+            <p class="text-gray-600 mt-2">Introduce tus piezas y obtén el plano de corte más eficiente.</p>
+        </header>
+
+        <main class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Columna de Controles -->
+            <div class="md:col-span-1 bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-xl font-bold mb-4 border-b pb-2">Configuración</h2>
+                
+                <!-- Grosor del Corte -->
+                <div class="mb-4">
+                    <label for="kerf-input" class="block text-sm font-medium text-gray-700 mb-1">Grosor de Sierra (Kerf) en cm:</label>
+                    <input type="number" id="kerf-input" value="0.3" step="0.1" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+
+                <!-- Formulario para Añadir Piezas -->
+                <div class="space-y-3 p-4 border border-gray-200 rounded-lg">
+                    <h3 class="font-semibold text-lg">Añadir Nueva Pieza</h3>
+                    <input type="text" id="piece-id" placeholder="Nombre (ej: Puerta)" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="number" id="piece-length" placeholder="Largo (cm)" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        <input type="number" id="piece-width" placeholder="Ancho (cm)" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <input type="number" id="piece-quantity" placeholder="Cantidad" class="w-full p-2 border border-gray-300 rounded-md shadow-sm" min="1" value="1">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="piece-veta" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                        <label for="piece-veta" class="ml-2 block text-sm text-gray-900">Veta Fija (No rotar)</label>
+                    </div>
+                    <button id="add-piece-btn" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors">Añadir Pieza</button>
+                </div>
+                
+                <!-- Selección de Lámina y Botón de Optimizar -->
+                 <div class="mt-6">
+                    <label for="sheet-select" class="block text-sm font-medium text-gray-700 mb-1">Tamaño de Lámina:</label>
+                    <select id="sheet-select" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        <option value="244-122">244.0 x 122.0 cm</option>
+                        <option value="244-183">244.0 x 183.0 cm</option>
+                    </select>
+                    <button id="optimize-btn" class="w-full mt-4 bg-green-600 text-white font-bold py-3 px-4 rounded-md hover:bg-green-700 transition-colors text-lg">Optimizar Cortes</button>
+                </div>
+            </div>
+
+            <!-- Columna de Piezas y Resultados -->
+            <div class="md:col-span-2 space-y-8">
+                <!-- Lista de Piezas -->
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-xl font-bold mb-4">Lista de Piezas a Cortar</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="table-cell font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                                    <th class="table-cell font-medium text-gray-500 uppercase tracking-wider">Dimensiones</th>
+                                    <th class="table-cell font-medium text-gray-500 uppercase tracking-wider">Cant.</th>
+                                    <th class="table-cell font-medium text-gray-500 uppercase tracking-wider">Veta</th>
+                                    <th class="table-cell font-medium text-gray-500 uppercase tracking-wider">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pieces-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Filas de piezas se insertarán aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Resultados -->
+                <div id="results-container" class="bg-white p-6 rounded-xl shadow-lg min-h-[200px]">
+                    <h2 class="text-xl font-bold mb-4">Plan de Corte</h2>
+                     <div id="results-summary" class="mb-4 text-gray-600"></div>
+                    <div id="layouts-container" class="space-y-6">
+                        <p class="text-gray-500 text-center py-8">Los resultados aparecerán aquí después de optimizar.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- ESTADO DE LA APLICACIÓN ---
+        let pieces = [];
+        const LAMINAS_DISPONIBLES = {
+            "244-122": { largo: 244.0, ancho: 122.0 },
+            "244-183": { largo: 244.0, ancho: 183.0 }
+        };
+
+        // --- REFERENCIAS A ELEMENTOS DEL DOM ---
+        const kerfInput = document.getElementById('kerf-input');
+        const pieceIdInput = document.getElementById('piece-id');
+        const pieceLengthInput = document.getElementById('piece-length');
+        const pieceWidthInput = document.getElementById('piece-width');
+        const pieceQuantityInput = document.getElementById('piece-quantity');
+        const pieceVetaInput = document.getElementById('piece-veta');
+        const addPieceBtn = document.getElementById('add-piece-btn');
+        const piecesTableBody = document.getElementById('pieces-table-body');
+        const optimizeBtn = document.getElementById('optimize-btn');
+        const sheetSelect = document.getElementById('sheet-select');
+        const resultsContainer = document.getElementById('results-container');
+        const layoutsContainer = document.getElementById('layouts-container');
+        const resultsSummary = document.getElementById('results-summary');
+
+        // --- LÓGICA DE LA INTERFAZ ---
+        
+        function renderPiecesTable() {
+            piecesTableBody.innerHTML = '';
+            if (pieces.length === 0) {
+                piecesTableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">Aún no has añadido ninguna pieza.</td></tr>`;
+                return;
+            }
+            pieces.forEach((p, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="table-cell">${p.id}</td>
+                    <td class="table-cell">${p.largo} x ${p.ancho} cm</td>
+                    <td class="table-cell">${p.cantidad}</td>
+                    <td class="table-cell">${p.veta === 'fija' ? 'Fija' : 'Libre'}</td>
+                    <td class="table-cell">
+                        <button class="btn-danger text-sm font-medium py-1 px-3 rounded-md" onclick="deletePiece(${index})">Eliminar</button>
+                    </td>
+                `;
+                piecesTableBody.appendChild(row);
+            });
+        }
+
+        function addPiece() {
+            const id = pieceIdInput.value.trim() || 'Pieza sin nombre';
+            const largo = parseFloat(pieceLengthInput.value);
+            const ancho = parseFloat(pieceWidthInput.value);
+            const cantidad = parseInt(pieceQuantityInput.value);
+            const veta = pieceVetaInput.checked ? 'fija' : 'libre';
+
+            if (isNaN(largo) || isNaN(ancho) || isNaN(cantidad) || largo <= 0 || ancho <= 0 || cantidad <= 0) {
+                alert('Por favor, introduce valores numéricos positivos para las dimensiones y la cantidad.');
+                return;
+            }
+
+            pieces.push({ id, largo, ancho, cantidad, veta });
+            renderPiecesTable();
+            
+            // Limpiar inputs
+            pieceIdInput.value = '';
+            pieceLengthInput.value = '';
+            pieceWidthInput.value = '';
+            pieceQuantityInput.value = '1';
+            pieceIdInput.focus();
+        }
+
+        function deletePiece(index) {
+            pieces.splice(index, 1);
+            renderPiecesTable();
+        }
+
+        function startOptimization() {
+            if (pieces.length === 0) {
+                alert('Añade al menos una pieza antes de optimizar.');
+                return;
+            }
+            
+            layoutsContainer.innerHTML = '<p class="text-gray-500 text-center py-8">Calculando...</p>';
+            resultsSummary.innerHTML = '';
+
+            setTimeout(() => { // Usar setTimeout para permitir que la UI se actualice
+                const kerf = parseFloat(kerfInput.value) || 0;
+                const selectedSheetKey = sheetSelect.value;
+                const selectedSheet = LAMINAS_DISPONIBLES[selectedSheetKey];
+                
+                // Expandir piezas por cantidad
+                const piezas_a_colocar = [];
+                pieces.forEach(p => {
+                    for (let i = 0; i < p.cantidad; i++) {
+                        piezas_a_colocar.push({...p});
+                    }
+                });
+
+                const resultado = optimize(selectedSheet.largo, selectedSheet.ancho, piezas_a_colocar, kerf);
+                drawResults(resultado, selectedSheet.largo, selectedSheet.ancho, kerf);
+            }, 50);
+        }
+
+        addPieceBtn.addEventListener('click', addPiece);
+        optimizeBtn.addEventListener('click', startOptimization);
+
+        // --- ALGORITMO DE OPTIMIZACIÓN (PORTADO DE PYTHON) ---
+        function optimize(largo_lamina, ancho_lamina, piezas_info, kerf) {
+            const piezas_a_colocar = piezas_info.map(p => ({
+                ...p,
+                largo_total: p.largo + kerf,
+                ancho_total: p.ancho + kerf,
+                area: (p.largo + kerf) * (p.ancho + kerf)
+            }));
+
+            piezas_a_colocar.sort((a, b) => b.area - a.area);
+
+            const laminas_usadas = [];
+
+            for (const pieza of piezas_a_colocar) {
+                let best_fit_found = null;
+                let min_short_side = Infinity;
+                let target_lamina_idx = -1;
+                let target_rect_idx = -1;
+
+                for (let i = 0; i < laminas_usadas.length; i++) {
+                    const lamina = laminas_usadas[i];
+                    for (let j = 0; j < lamina.free_rects.length; j++) {
+                        const [rx, ry, rw, rh] = lamina.free_rects[j];
+                        
+                        // Sin rotación
+                        let pw = pieza.largo_total;
+                        let ph = pieza.ancho_total;
+                        if (pw <= rw && ph <= rh) {
+                            const short_side = Math.min(rw - pw, rh - ph);
+                            if (short_side < min_short_side) {
+                                min_short_side = short_side;
+                                best_fit_found = { rotated: false, pieza: pieza };
+                                target_lamina_idx = i;
+                                target_rect_idx = j;
+                            }
+                        }
+
+                        // Con rotación
+                        if (pieza.veta === 'libre') {
+                            pw = pieza.ancho_total;
+                            ph = pieza.largo_total;
+                            if (pw <= rw && ph <= rh) {
+                                const short_side = Math.min(rw - pw, rh - ph);
+                                if (short_side < min_short_side) {
+                                    min_short_side = short_side;
+                                    best_fit_found = { rotated: true, pieza: pieza };
+                                    target_lamina_idx = i;
+                                    target_rect_idx = j;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (!best_fit_found) {
+                    const lamina_nueva = {
+                        largo: largo_lamina,
+                        ancho: ancho_lamina,
+                        piezas: [],
+                        free_rects: [[0, 0, largo_lamina, ancho_lamina]]
+                    };
+                    laminas_usadas.push(lamina_nueva);
+                    target_lamina_idx = laminas_usadas.length - 1;
+                    target_rect_idx = 0;
+                    
+                    const pw_orig = pieza.largo_total;
+                    const ph_orig = pieza.ancho_total;
+                    if (pw_orig <= largo_lamina && ph_orig <= ancho_lamina) {
+                        best_fit_found = { rotated: false, pieza: pieza };
+                    } else if (pieza.veta === 'libre' && ph_orig <= largo_lamina && pw_orig <= ancho_lamina) {
+                        best_fit_found = { rotated: true, pieza: pieza };
+                    } else {
+                        console.error("Pieza demasiado grande:", pieza);
+                        continue;
+                    }
+                }
+
+                const { rotated, pieza: pieza_data } = best_fit_found;
+                const lamina_a_modificar = laminas_usadas[target_lamina_idx];
+                const [rx, ry, rw, rh] = lamina_a_modificar.free_rects.splice(target_rect_idx, 1)[0];
+                
+                const pw = rotated ? pieza_data.ancho_total : pieza_data.largo_total;
+                const ph = rotated ? pieza_data.largo_total : pieza_data.ancho_total;
+
+                lamina_a_modificar.piezas.push({
+                    id: pieza_data.id,
+                    x: rx, y: ry,
+                    largo_corte: pw - kerf, ancho_corte: ph - kerf
+                });
+
+                if (rw - pw > rh - ph) {
+                    const new_rect1 = [rx + pw, ry, rw - pw, rh];
+                    const new_rect2 = [rx, ry + ph, pw, rh - ph];
+                    if (new_rect1[2] > 0 && new_rect1[3] > 0) lamina_a_modificar.free_rects.push(new_rect1);
+                    if (new_rect2[2] > 0 && new_rect2[3] > 0) lamina_a_modificar.free_rects.push(new_rect2);
+                } else {
+                    const new_rect1 = [rx, ry + ph, rw, rh - ph];
+                    const new_rect2 = [rx + pw, ry, rw - pw, ph];
+                    if (new_rect1[2] > 0 && new_rect1[3] > 0) lamina_a_modificar.free_rects.push(new_rect1);
+                    if (new_rect2[2] > 0 && new_rect2[3] > 0) lamina_a_modificar.free_rects.push(new_rect2);
+                }
+            }
+
+            return laminas_usadas;
+        }
+
+
+        // --- LÓGICA DE DIBUJO ---
+        function drawResults(laminas, largo_lamina, ancho_lamina, kerf) {
+            layoutsContainer.innerHTML = '';
+            if (laminas.length === 0) {
+                 layoutsContainer.innerHTML = '<p class="text-gray-500 text-center py-8">No se pudieron colocar las piezas. Revisa las dimensiones.</p>';
+                 return;
+            }
+
+            let total_area_piezas = 0;
+            const colors = ['#a5f3fc', '#d8b4fe', '#fde68a', '#a7f3d0', '#fecaca', '#e0e7ff', '#fed7aa'];
+            let colorIndex = 0;
+            
+            laminas.forEach((lamina, i) => {
+                const laminaDiv = document.createElement('div');
+                const title = document.createElement('h3');
+                title.textContent = `Lámina #${i + 1}`;
+                title.className = 'text-lg font-semibold mb-2';
+                laminaDiv.appendChild(title);
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Escalar para visualización
+                const scale = Math.min(600 / largo_lamina, 400 / ancho_lamina);
+                canvas.width = largo_lamina * scale;
+                canvas.height = ancho_lamina * scale;
+                canvas.style.border = '2px solid #1f2937';
+                canvas.style.borderRadius = '8px';
+                
+                // Fondo de la lámina
+                ctx.fillStyle = '#fefce8'; // yellow-50
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                lamina.piezas.forEach(p => {
+                    total_area_piezas += p.largo_corte * p.ancho_corte;
+                    const l_corte = p.largo_corte;
+                    const w_corte = p.ancho_corte;
+                    
+                    ctx.fillStyle = colors[colorIndex % colors.length];
+                    ctx.fillRect(p.x * scale, p.y * scale, l_corte * scale, w_corte * scale);
+
+                    ctx.strokeStyle = '#0284c7'; // sky-600
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(p.x * scale, p.y * scale, l_corte * scale, w_corte * scale);
+                    
+                    // Texto
+                    ctx.fillStyle = '#1f2937'; // gray-800
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    const fontSize = Math.max(8, Math.min(12, l_corte * scale / 4));
+                    ctx.font = `${fontSize}px sans-serif`;
+                    ctx.fillText(`${p.id}`, (p.x + l_corte / 2) * scale, (p.y + w_corte / 2) * scale - fontSize/2);
+                    ctx.fillText(`${l_corte.toFixed(1)}x${w_corte.toFixed(1)}`, (p.x + l_corte / 2) * scale, (p.y + w_corte / 2) * scale + fontSize/2);
+
+                    colorIndex++;
+                });
+
+                laminaDiv.appendChild(canvas);
+                layoutsContainer.appendChild(laminaDiv);
+            });
+            
+            const total_area_laminas = laminas.length * largo_lamina * ancho_lamina;
+            const desperdicio = 100 * (1 - total_area_piezas / total_area_laminas);
+
+            resultsSummary.innerHTML = `
+                <p><span class="font-semibold">Número de láminas usadas:</span> ${laminas.length}</p>
+                <p><span class="font-semibold">Desperdicio aproximado:</span> ${desperdicio.toFixed(2)}%</p>
+            `;
+        }
+        
+        // --- INICIALIZACIÓN ---
+        renderPiecesTable();
+
+    </script>
+</body>
+</html>
